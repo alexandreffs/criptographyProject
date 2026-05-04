@@ -1,4 +1,4 @@
-package secureUDPproxy;
+package common;
 
 import java.io.FileInputStream;
 import java.security.Key;

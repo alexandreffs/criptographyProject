@@ -1,4 +1,4 @@
-package secureUDPproxy;
+package common;
 
 import javax.crypto.SecretKey;
 

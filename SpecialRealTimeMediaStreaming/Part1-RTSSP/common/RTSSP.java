@@ -1,4 +1,4 @@
-package secureUDPproxy;
+package common;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -23,80 +23,63 @@ public class RTSSP {
     private static final int CHACHA_NONCE_LENGTH = 12;
     private static final int AES_BLOCK_IV_LENGTH = 16;
     private static final int GCM_TAG_LENGTH = 128;
-    private static final int AEAD_TAG_BYTES = 16;
 
     private static final SecureRandom random = new SecureRandom();
 
-    public static byte[] protect(
-            byte type,
-            int seq,
-            byte[] plaintext,
-            CryptoConfig crypto) throws Exception {
+    /*
+     * RTSSP packet format:
+     *
+     * byte type
+     * short version
+     * int sequenceNumber
+     * int ciphertextLength
+     * byte ivLength
+     * byte macLength
+     * byte[] iv/nonce
+     * byte[] ciphertext
+     * byte[] mac only for CBC/CTR
+     */
+    public static byte[] protect(byte type, int seq, byte[] plaintext, CryptoConfig crypto) throws Exception {
 
         byte[] iv = generateIV(crypto);
         byte[] ciphertext;
         byte[] mac = new byte[0];
 
         if (crypto.cipherSuite.equalsIgnoreCase("AES/GCM/NoPadding")) {
-
-            int ciphertextLength = plaintext.length + AEAD_TAG_BYTES;
-
-            byte[] header = buildHeader(
-                    type,
-                    seq,
-                    ciphertextLength,
-                    iv.length,
-                    0);
-
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-
             cipher.init(Cipher.ENCRYPT_MODE, crypto.key, spec);
-            cipher.updateAAD(header);
+
+            byte[] aad = buildHeader(type, seq, plaintext.length + (GCM_TAG_LENGTH / 8), iv.length, 0);
+            cipher.updateAAD(aad);
 
             ciphertext = cipher.doFinal(plaintext);
 
-            return concat(header, iv, ciphertext, mac);
+            return concat(aad, iv, ciphertext, mac);
         }
 
         else if (crypto.cipherSuite.equalsIgnoreCase("ChaCha20-Poly1305")) {
-
-            int ciphertextLength = plaintext.length + AEAD_TAG_BYTES;
-
-            byte[] header = buildHeader(
-                    type,
-                    seq,
-                    ciphertextLength,
-                    iv.length,
-                    0);
-
             Cipher cipher = Cipher.getInstance("ChaCha20-Poly1305");
             IvParameterSpec spec = new IvParameterSpec(iv);
-
             cipher.init(Cipher.ENCRYPT_MODE, crypto.key, spec);
-            cipher.updateAAD(header);
+
+            byte[] aad = buildHeader(type, seq, plaintext.length + 16, iv.length, 0);
+            cipher.updateAAD(aad);
 
             ciphertext = cipher.doFinal(plaintext);
 
-            return concat(header, iv, ciphertext, mac);
+            return concat(aad, iv, ciphertext, mac);
         }
 
         else {
             Cipher cipher = Cipher.getInstance(crypto.cipherSuite);
             IvParameterSpec spec = new IvParameterSpec(iv);
-
             cipher.init(Cipher.ENCRYPT_MODE, crypto.key, spec);
 
             ciphertext = cipher.doFinal(plaintext);
 
             int macLength = Mac.getInstance(crypto.hmacAlgorithm).getMacLength();
-
-            byte[] header = buildHeader(
-                    type,
-                    seq,
-                    ciphertext.length,
-                    iv.length,
-                    macLength);
+            byte[] header = buildHeader(type, seq, ciphertext.length, iv.length, macLength);
 
             mac = computeMac(crypto, header, iv, ciphertext);
 
@@ -104,9 +87,7 @@ public class RTSSP {
         }
     }
 
-    public static Packet unprotect(
-            byte[] packetData,
-            CryptoConfig crypto) throws Exception {
+    public static Packet unprotect(byte[] packetData, CryptoConfig crypto) throws Exception {
 
         ByteBuffer buffer = ByteBuffer.wrap(packetData);
 
@@ -121,12 +102,7 @@ public class RTSSP {
             throw new SecurityException("Invalid RTSSP version");
         }
 
-        byte[] header = buildHeader(
-                type,
-                seq,
-                ciphertextLength,
-                ivLength,
-                macLength);
+        byte[] header = buildHeader(type, seq, ciphertextLength, ivLength, macLength);
 
         byte[] iv = new byte[ivLength];
         buffer.get(iv);
@@ -135,7 +111,6 @@ public class RTSSP {
         buffer.get(ciphertext);
 
         byte[] receivedMac = new byte[macLength];
-
         if (macLength > 0) {
             buffer.get(receivedMac);
         }
@@ -143,10 +118,8 @@ public class RTSSP {
         byte[] plaintext;
 
         if (crypto.cipherSuite.equalsIgnoreCase("AES/GCM/NoPadding")) {
-
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-
             cipher.init(Cipher.DECRYPT_MODE, crypto.key, spec);
             cipher.updateAAD(header);
 
@@ -154,10 +127,8 @@ public class RTSSP {
         }
 
         else if (crypto.cipherSuite.equalsIgnoreCase("ChaCha20-Poly1305")) {
-
             Cipher cipher = Cipher.getInstance("ChaCha20-Poly1305");
             IvParameterSpec spec = new IvParameterSpec(iv);
-
             cipher.init(Cipher.DECRYPT_MODE, crypto.key, spec);
             cipher.updateAAD(header);
 
@@ -173,7 +144,6 @@ public class RTSSP {
 
             Cipher cipher = Cipher.getInstance(crypto.cipherSuite);
             IvParameterSpec spec = new IvParameterSpec(iv);
-
             cipher.init(Cipher.DECRYPT_MODE, crypto.key, spec);
 
             plaintext = cipher.doFinal(ciphertext);
@@ -199,17 +169,10 @@ public class RTSSP {
 
         byte[] iv = new byte[length];
         random.nextBytes(iv);
-
         return iv;
     }
 
-    private static byte[] buildHeader(
-            byte type,
-            int seq,
-            int ciphertextLength,
-            int ivLength,
-            int macLength) {
-
+    private static byte[] buildHeader(byte type, int seq, int ciphertextLength, int ivLength, int macLength) {
         ByteBuffer buffer = ByteBuffer.allocate(1 + 2 + 4 + 4 + 1 + 1);
 
         buffer.put(type);
@@ -222,12 +185,8 @@ public class RTSSP {
         return buffer.array();
     }
 
-    private static byte[] computeMac(
-            CryptoConfig crypto,
-            byte[] header,
-            byte[] iv,
-            byte[] ciphertext) throws Exception {
-
+    private static byte[] computeMac(CryptoConfig crypto, byte[] header, byte[] iv, byte[] ciphertext)
+            throws Exception {
         Mac mac = Mac.getInstance(crypto.hmacAlgorithm);
         mac.init(crypto.macKey);
 

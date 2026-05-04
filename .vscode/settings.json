@@ -1,0 +1,8 @@
+{
+    "java.project.sourcePaths": [
+        "SpecialRealTimeMediaStreaming/Part1-RTSSP",
+        "SpecialRealTimeMediaStreaming/Part1-RTSSP/secureStreamServer",
+        "SpecialRealTimeMediaStreaming/Part2-SHP-RTSSP",
+        "SpecialRealTimeMediaStreaming/Part2-SHP-RTSSP/secureStreamServer"
+    ]
+}
