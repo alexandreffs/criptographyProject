@@ -27,6 +27,10 @@ public class secureUDPproxy {
                 .collect(Collectors.toSet());
 
         DatagramSocket controlSocket = new DatagramSocket();
+        DatagramSocket inSocket = new DatagramSocket(inSocketAddress);
+        DatagramSocket outSocket = new DatagramSocket();
+
+        System.out.println("Proxy listening on " + remote);
 
         String request = "REQUEST:" + movie + ":" + remote;
         byte[] requestBytes = request.getBytes();
@@ -38,9 +42,6 @@ public class secureUDPproxy {
 
         System.out.println("Movie request sent: " + request);
 
-        DatagramSocket inSocket = new DatagramSocket(inSocketAddress);
-        DatagramSocket outSocket = new DatagramSocket();
-
         byte[] buffer = new byte[8192];
 
         CryptoConfig activeCrypto = null;
@@ -50,8 +51,6 @@ public class secureUDPproxy {
         int droppedPackets = 0;
 
         long startTime = 0;
-
-        System.out.println("Proxy listening on " + remote);
 
         while (true) {
             DatagramPacket inPacket = new DatagramPacket(buffer, buffer.length);

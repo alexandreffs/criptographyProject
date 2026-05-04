@@ -48,13 +48,12 @@ public class RTSSP {
             GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
             cipher.init(Cipher.ENCRYPT_MODE, crypto.key, spec);
 
-            byte[] aad = buildHeader(type, seq, 0, iv.length, 0);
+            byte[] aad = buildHeader(type, seq, plaintext.length + (GCM_TAG_LENGTH / 8), iv.length, 0);
             cipher.updateAAD(aad);
 
             ciphertext = cipher.doFinal(plaintext);
 
-            byte[] header = buildHeader(type, seq, ciphertext.length, iv.length, 0);
-            return concat(header, iv, ciphertext, mac);
+            return concat(aad, iv, ciphertext, mac);
         }
 
         else if (crypto.cipherSuite.equalsIgnoreCase("ChaCha20-Poly1305")) {
@@ -62,13 +61,12 @@ public class RTSSP {
             IvParameterSpec spec = new IvParameterSpec(iv);
             cipher.init(Cipher.ENCRYPT_MODE, crypto.key, spec);
 
-            byte[] aad = buildHeader(type, seq, 0, iv.length, 0);
+            byte[] aad = buildHeader(type, seq, plaintext.length + 16, iv.length, 0);
             cipher.updateAAD(aad);
 
             ciphertext = cipher.doFinal(plaintext);
 
-            byte[] header = buildHeader(type, seq, ciphertext.length, iv.length, 0);
-            return concat(header, iv, ciphertext, mac);
+            return concat(aad, iv, ciphertext, mac);
         }
 
         else {

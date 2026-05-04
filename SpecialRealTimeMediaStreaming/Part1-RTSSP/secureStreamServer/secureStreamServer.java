@@ -41,7 +41,7 @@ public class secureStreamServer {
 		String proxyHost = parts[2];
 		int proxyPort = Integer.parseInt(parts[3]);
 
-		String movieFile = "movies/" + movieName;
+		String movieFile = "secureStreamServer/movies/" + movieName;
 
 		File movieDiskFile = new File(movieFile);
 
