@@ -4,5 +4,10 @@
         "SpecialRealTimeMediaStreaming/Part1-RTSSP/secureStreamServer",
         "SpecialRealTimeMediaStreaming/Part2-SHP-RTSSP",
         "SpecialRealTimeMediaStreaming/Part2-SHP-RTSSP/secureStreamServer"
+    ],
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "SpecialRealTimeMediaStreaming/Part3-PQSHP-RTSSP/bcprov-jdk15on-1.68.jar",
+        "SpecialRealTimeMediaStreaming/Part3-PQSHP-RTSSP/bcprov-jdk18on-1.84.jar"
     ]
 }
