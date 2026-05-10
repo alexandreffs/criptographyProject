@@ -6,22 +6,11 @@ import java.security.*;
 
 public class secureStreamServer {
 
-	/*
-	 * Optional trust pinning.
-	 *
-	 * If null, the server accepts any Dilithium public key that correctly verifies
-	 * the CLIENT_HELLO signature.
-	 *
-	 * For stronger authentication, run once, copy the proxy Dilithium fingerprint
-	 * printed in the proxy terminal, and paste it here.
-	 */
-	private static final String EXPECTED_PROXY_DILITHIUM_FINGERPRINT = "xO7ZANDWAiFc+F+PC5IpoQFOg3eVZeiNpk9rgNjLTAM=";
-
 	public static void main(String[] args) throws Exception {
 
 		if (args.length != 1) {
 			System.out.println(
-					"Use: java -cp \".;bcprov-jdk15to18-1.78.jar;secureStreamServer\" secureStreamServer 9999");
+					"Use: java -cp \".;bcprov-jdk18on-1.84.jar;secureStreamServer\" secureStreamServer 9999");
 			System.exit(-1);
 		}
 
@@ -70,24 +59,13 @@ public class secureStreamServer {
 				return;
 			}
 
+			System.out.println("PQ-SHP CLIENT_HELLO Dilithium signature verified");
+
 			String movieName = clientParts[1];
 			String proxyStreamEndpoint = clientParts[2];
 			String[] clientSupportedCipherSuites = clientParts[3].split(",");
 			PublicKey clientKyberPublicKey = PQSHP.base64ToKyberPublicKey(clientParts[4]);
 			byte[] clientNonce = PQSHP.base64ToBytes(clientParts[5]);
-			PublicKey clientDilithiumPublicKey = PQSHP.base64ToDilithiumPublicKey(clientParts[6]);
-
-			String proxyFingerprint = PQSHP.publicKeyFingerprint(clientDilithiumPublicKey);
-			System.out.println("Proxy Dilithium public key fingerprint: " + proxyFingerprint);
-
-			if (EXPECTED_PROXY_DILITHIUM_FINGERPRINT != null) {
-				PQSHP.verifyExpectedFingerprint(
-						clientDilithiumPublicKey,
-						EXPECTED_PROXY_DILITHIUM_FINGERPRINT);
-				System.out.println("Proxy Dilithium fingerprint trusted");
-			}
-
-			System.out.println("PQ-SHP CLIENT_HELLO Dilithium signature verified");
 
 			/*
 			 * ============================================================
@@ -118,10 +96,6 @@ public class secureStreamServer {
 			 * ============================================================
 			 * 4. KYBER ENCAPSULATION
 			 * ============================================================
-			 *
-			 * Server encapsulates a shared secret using the proxy Kyber public key.
-			 * The server sends only the Kyber encapsulation/ciphertext to the proxy.
-			 * The proxy decapsulates it using its Kyber private key.
 			 */
 
 			PQSHP.KEMResult kemResult = PQSHP.kyberEncapsulate(clientKyberPublicKey);
@@ -133,16 +107,9 @@ public class secureStreamServer {
 			 * ============================================================
 			 * 5. SERVER DILITHIUM KEYPAIR
 			 * ============================================================
-			 *
-			 * In this simple version, the server generates a Dilithium key pair at runtime.
-			 * For stronger identity authentication, you can persist this key pair and pin
-			 * its fingerprint on the proxy side.
 			 */
 
 			KeyPair serverDilithiumKeyPair = PQSHP.generateDilithiumKeyPair();
-
-			String serverFingerprint = PQSHP.publicKeyFingerprint(serverDilithiumKeyPair.getPublic());
-			System.out.println("Server Dilithium public key fingerprint: " + serverFingerprint);
 
 			/*
 			 * ============================================================
@@ -381,16 +348,32 @@ public class secureStreamServer {
 	}
 }
 
+// import common.*;
+
 // import java.io.*;
 // import java.net.*;
 // import java.security.*;
 
 // public class secureStreamServer {
 
+// /*
+// * Optional trust pinning.
+// *
+// * If null, the server accepts any Dilithium public key that correctly
+// verifies
+// * the CLIENT_HELLO signature.
+// *
+// * For stronger authentication, run once, copy the proxy Dilithium fingerprint
+// * printed in the proxy terminal, and paste it here.
+// */
+// private static final String EXPECTED_PROXY_DILITHIUM_FINGERPRINT = null;
+
 // public static void main(String[] args) throws Exception {
 
 // if (args.length != 1) {
-// System.out.println("Use: java secureStreamServer 9999");
+// System.out.println(
+// "Use: java -cp \".;bcprov-jdk15to18-1.78.jar;secureStreamServer\"
+// secureStreamServer 9999");
 // System.exit(-1);
 // }
 
@@ -404,10 +387,17 @@ public class secureStreamServer {
 
 // DatagramSocket controlSocket = new DatagramSocket(controlPort);
 
-// System.out.println("Server waiting for SHP CLIENT_HELLO on port " +
+// System.out.println("Server waiting for signed PQ-SHP CLIENT_HELLO on port " +
 // controlPort);
 
-// byte[] requestBuffer = new byte[8192];
+// try {
+// /*
+// * ============================================================
+// * 1. RECEIVE PQ-SHP CLIENT_HELLO
+// * ============================================================
+// */
+
+// byte[] requestBuffer = new byte[65507];
 // DatagramPacket requestPacket = new DatagramPacket(requestBuffer,
 // requestBuffer.length);
 
@@ -418,73 +408,149 @@ public class secureStreamServer {
 // 0,
 // requestPacket.getLength());
 
-// System.out.println("Received: " + clientHello);
+// System.out.println("PQ-SHP CLIENT_HELLO received");
 
-// String[] clientParts = SHP.splitMessage(clientHello);
+// String[] clientParts = PQSHP.splitMessage(clientHello);
 
-// if (!clientParts[0].equals(SHP.SHP_CLIENT_HELLO)) {
+// if (!clientParts[0].equals(PQSHP.PQ_CLIENT_HELLO)) {
 // sendPlainError(controlSocket, requestPacket.getSocketAddress(),
-// "Invalid SHP CLIENT_HELLO");
-// controlSocket.close();
+// "Invalid PQ-SHP CLIENT_HELLO");
+// return;
+// }
+
+// if (!PQSHP.verifyClientHelloSignature(clientParts)) {
+// sendPlainError(controlSocket, requestPacket.getSocketAddress(),
+// "Invalid PQ-SHP CLIENT_HELLO Dilithium signature");
 // return;
 // }
 
 // String movieName = clientParts[1];
-// String[] clientSupportedCipherSuites = clientParts[2].split(",");
-// PublicKey clientECDHPublicKey = SHP.base64ToPublicKey(clientParts[3]);
-// byte[] clientNonce = SHP.base64ToBytes(clientParts[4]);
+// String proxyStreamEndpoint = clientParts[2];
+// String[] clientSupportedCipherSuites = clientParts[3].split(",");
+// PublicKey clientKyberPublicKey =
+// PQSHP.base64ToKyberPublicKey(clientParts[4]);
+// byte[] clientNonce = PQSHP.base64ToBytes(clientParts[5]);
+// PublicKey clientDilithiumPublicKey =
+// PQSHP.base64ToDilithiumPublicKey(clientParts[6]);
+
+// String proxyFingerprint =
+// PQSHP.publicKeyFingerprint(clientDilithiumPublicKey);
+// System.out.println("Proxy Dilithium public key fingerprint: " +
+// proxyFingerprint);
+
+// if (EXPECTED_PROXY_DILITHIUM_FINGERPRINT != null) {
+// PQSHP.verifyExpectedFingerprint(
+// clientDilithiumPublicKey,
+// EXPECTED_PROXY_DILITHIUM_FINGERPRINT);
+// System.out.println("Proxy Dilithium fingerprint trusted");
+// }
+
+// System.out.println("PQ-SHP CLIENT_HELLO Dilithium signature verified");
+
+// /*
+// * ============================================================
+// * 2. VALIDATE MOVIE
+// * ============================================================
+// */
 
 // String movieFile = "secureStreamServer/movies/" + movieName;
-
 // File movieDiskFile = new File(movieFile);
 
 // if (!movieDiskFile.exists()) {
 // sendPlainError(controlSocket, requestPacket.getSocketAddress(),
 // "Movie does not exist: " + movieName);
-// controlSocket.close();
 // return;
 // }
 
-// String selectedCipherSuite = SHP.chooseCipherSuite(
+// /*
+// * ============================================================
+// * 3. CHOOSE CIPHERSUITE
+// * ============================================================
+// */
+
+// String selectedCipherSuite = PQSHP.chooseCipherSuite(
 // clientSupportedCipherSuites,
 // serverSupportedCipherSuites);
 
-// KeyPair serverECDHKeyPair = SHP.generateECDHKeyPair();
-// byte[] serverNonce = SHP.generateNonce();
+// /*
+// * ============================================================
+// * 4. KYBER ENCAPSULATION
+// * ============================================================
+// *
+// * Server encapsulates a shared secret using the proxy Kyber public key.
+// * The server sends only the Kyber encapsulation/ciphertext to the proxy.
+// * The proxy decapsulates it using its Kyber private key.
+// */
 
-// byte[] sharedSecret = SHP.computeSharedSecret(
-// serverECDHKeyPair.getPrivate(),
-// clientECDHPublicKey);
+// PQSHP.KEMResult kemResult = PQSHP.kyberEncapsulate(clientKyberPublicKey);
 
-// SHPContext shpContext = new SHPContext();
-// shpContext.movieName = movieName;
-// shpContext.selectedCipherSuite = selectedCipherSuite;
-// shpContext.clientNonce = clientNonce;
-// shpContext.serverNonce = serverNonce;
+// byte[] kyberSharedSecret = kemResult.sharedSecret;
+// byte[] kyberEncapsulation = kemResult.encapsulation;
 
-// shpContext.encryptionKey = SHP.deriveEncryptionKey(
-// sharedSecret,
+// /*
+// * ============================================================
+// * 5. SERVER DILITHIUM KEYPAIR
+// * ============================================================
+// *
+// * In this simple version, the server generates a Dilithium key pair at
+// runtime.
+// * For stronger identity authentication, you can persist this key pair and pin
+// * its fingerprint on the proxy side.
+// */
+
+// KeyPair serverDilithiumKeyPair = PQSHP.generateDilithiumKeyPair();
+
+// String serverFingerprint =
+// PQSHP.publicKeyFingerprint(serverDilithiumKeyPair.getPublic());
+// System.out.println("Server Dilithium public key fingerprint: " +
+// serverFingerprint);
+
+// /*
+// * ============================================================
+// * 6. DERIVE RTSSP SESSION KEYS
+// * ============================================================
+// */
+
+// byte[] serverNonce = PQSHP.generateNonce();
+
+// PQSHPContext pqContext = new PQSHPContext();
+// pqContext.movieName = movieName;
+// pqContext.selectedCipherSuite = selectedCipherSuite;
+// pqContext.clientNonce = clientNonce;
+// pqContext.serverNonce = serverNonce;
+// pqContext.kyberSharedSecret = kyberSharedSecret;
+
+// pqContext.encryptionKey = PQSHP.deriveEncryptionKey(
+// kyberSharedSecret,
 // clientNonce,
 // serverNonce,
 // selectedCipherSuite);
 
-// if (SHP.needsMacKey(selectedCipherSuite)) {
-// shpContext.macKey = SHP.deriveMacKey(
-// sharedSecret,
+// if (PQSHP.needsMacKey(selectedCipherSuite)) {
+// pqContext.macKey = PQSHP.deriveMacKey(
+// kyberSharedSecret,
 // clientNonce,
 // serverNonce);
 // }
 
-// CryptoConfig crypto = shpContext.toCryptoConfig();
+// CryptoConfig crypto = pqContext.toCryptoConfig();
 
-// byte[] clientNonceResponse = SHP.createNonceResponse(clientNonce);
+// /*
+// * ============================================================
+// * 7. SEND SIGNED PQ-SHP SERVER_HELLO
+// * ============================================================
+// */
 
-// String serverHello = SHP.createServerHello(
+// byte[] clientNonceResponse = PQSHP.createNonceResponse(clientNonce);
+
+// String serverHello = PQSHP.createServerHello(
 // movieName,
 // selectedCipherSuite,
-// serverECDHKeyPair.getPublic(),
 // serverNonce,
-// clientNonceResponse);
+// kyberEncapsulation,
+// serverDilithiumKeyPair.getPublic(),
+// clientNonceResponse,
+// serverDilithiumKeyPair.getPrivate());
 
 // byte[] serverHelloBytes = serverHello.getBytes();
 
@@ -493,21 +559,25 @@ public class secureStreamServer {
 // serverHelloBytes.length,
 // requestPacket.getSocketAddress()));
 
-// System.out.println("SHP SERVER_HELLO sent");
+// System.out.println("PQ-SHP SERVER_HELLO sent and signed");
 // System.out.println("Selected CipherSuite: " + selectedCipherSuite);
-// System.out.println("Session keys derived");
+// System.out.println("Kyber shared secret established");
+// System.out.println("RTSSP session keys derived");
 
 // /*
-// * Receive encrypted CLIENT_FINAL
+// * ============================================================
+// * 8. RECEIVE ENCRYPTED PQ-SHP CLIENT_FINAL
+// * ============================================================
 // */
 
-// byte[] finalBuffer = new byte[8192];
+// byte[] finalBuffer = new byte[65507];
 // DatagramPacket finalPacket = new DatagramPacket(finalBuffer,
 // finalBuffer.length);
 
 // controlSocket.receive(finalPacket);
 
 // byte[] protectedClientFinal = new byte[finalPacket.getLength()];
+
 // System.arraycopy(
 // finalPacket.getData(),
 // 0,
@@ -520,38 +590,46 @@ public class secureStreamServer {
 
 // String clientFinal = new String(clientFinalPacket.payload);
 
-// String[] finalParts = SHP.splitMessage(clientFinal);
+// String[] finalParts = PQSHP.splitMessage(clientFinal);
 
-// if (!finalParts[0].equals(SHP.SHP_CLIENT_FINAL)) {
-// throw new SecurityException("Invalid SHP CLIENT_FINAL");
+// if (!finalParts[0].equals(PQSHP.PQ_CLIENT_FINAL)) {
+// throw new SecurityException("Invalid PQ-SHP CLIENT_FINAL");
 // }
 
-// byte[] serverNonceResponse = SHP.base64ToBytes(finalParts[1]);
+// byte[] serverNonceResponse = PQSHP.base64ToBytes(finalParts[1]);
 // String command = finalParts[2];
 
-// if (!SHP.verifyNonceResponse(serverNonce, serverNonceResponse)) {
+// if (!PQSHP.verifyNonceResponse(serverNonce, serverNonceResponse)) {
 // throw new SecurityException("Invalid response to server nonce");
 // }
 
 // if (!command.equals("START_STREAM")) {
-// throw new SecurityException("Invalid SHP final command");
+// throw new SecurityException("Invalid PQ-SHP final command");
 // }
 
-// System.out.println("SHP CLIENT_FINAL received and verified");
-// System.out.println("SHP handshake completed");
+// System.out.println("PQ-SHP CLIENT_FINAL received and verified");
+// System.out.println("PQ-SHP handshake completed");
 // System.out.println("Starting RTSSP stream...");
 
-// /*
-// * Extract proxy RTSSP destination from CLIENT_HELLO sender information.
-// * For local tests, proxy receives stream on localhost:8888.
-// */
+// InetSocketAddress proxyStreamAddress =
+// parseSocketAddress(proxyStreamEndpoint);
 
-// String proxyHost = "localhost";
-// int proxyPort = 8888;
+// streamMovie(
+// movieFile,
+// movieName,
+// proxyStreamAddress.getHostString(),
+// proxyStreamAddress.getPort(),
+// crypto);
+// }
 
-// streamMovie(movieFile, movieName, proxyHost, proxyPort, crypto);
+// catch (Exception e) {
+// System.out.println("PQ-SHP/RTSSP error: " + e.getMessage());
+// e.printStackTrace();
+// }
 
+// finally {
 // controlSocket.close();
+// }
 // }
 
 // private static void streamMovie(
@@ -575,6 +653,7 @@ public class secureStreamServer {
 // long q0 = 0;
 
 // byte[] startPayload = ("START:" + movieName).getBytes();
+
 // byte[] startPacket = RTSSP.protect(
 // RTSSP.TYPE_START,
 // seq++,
@@ -623,6 +702,7 @@ public class secureStreamServer {
 // }
 
 // byte[] endPayload = ("END:" + count).getBytes();
+
 // byte[] endPacket = RTSSP.protect(
 // RTSSP.TYPE_END,
 // seq++,
@@ -653,9 +733,14 @@ public class secureStreamServer {
 // SocketAddress address,
 // String message) throws Exception {
 
-// String error = "SHP_ERROR|" + message;
+// String error = PQSHP.PQ_ERROR + "|" + message;
 // byte[] data = error.getBytes();
 
 // socket.send(new DatagramPacket(data, data.length, address));
+// }
+
+// private static InetSocketAddress parseSocketAddress(String socketAddress) {
+// String[] split = socketAddress.split(":");
+// return new InetSocketAddress(split[0], Integer.parseInt(split[1]));
 // }
 // }

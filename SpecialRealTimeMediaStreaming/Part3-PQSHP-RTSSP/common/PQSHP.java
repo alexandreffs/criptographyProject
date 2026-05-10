@@ -409,24 +409,4 @@ public class PQSHP {
         return message.split("\\|");
     }
 
-    // ============================================================
-    // OPTIONAL: TRUST CHECKING BY PUBLIC KEY FINGERPRINT
-    // ============================================================
-
-    public static String publicKeyFingerprint(PublicKey publicKey) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] fp = digest.digest(publicKey.getEncoded());
-        return bytesToBase64(fp);
-    }
-
-    public static void verifyExpectedFingerprint(
-            PublicKey receivedPublicKey,
-            String expectedFingerprintBase64) throws Exception {
-
-        String receivedFingerprint = publicKeyFingerprint(receivedPublicKey);
-
-        if (!receivedFingerprint.equals(expectedFingerprintBase64)) {
-            throw new SecurityException("Received PQ public key fingerprint is not trusted");
-        }
-    }
 }
