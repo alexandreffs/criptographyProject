@@ -18,7 +18,7 @@ The basic system is composed of:
 Streaming Server -> Secure UDP Proxy -> VLC
 ```
 
-The server streams MPEG4-encoded frames stored in `.dat` movie files. The proxy receives the protected stream, verifies and decrypts it, then forwards the plaintext media frames locally to VLC or MPV.
+The server streams MPEG4-encoded frames stored in `.dat` movie files. The proxy receives the protected stream, verifies and decrypts it, then forwards the plaintext media frames locally to VLC.
 
 ---
 
@@ -33,7 +33,7 @@ Place the Bouncy Castle JAR in the root of `Part3-PQ-SHP-RTSSP`.
 Example:
 
 ```text
-Part3-PQ-SHP-RTSSP/bcprov-jdk15to18-1.78.jar
+Part3-PQ-SHP-RTSSP/bcprov-jdk18on-1.84.jar
 ```
 
 If you use a different version, update the compile and run commands accordingly.
@@ -99,7 +99,7 @@ SpecialRealTimeMediaStreaming/
 |   |   |-- secureUDPproxy.java
 |   |   |-- config.properties
 |   |
-|   |-- bcprov-jdk15to18-1.78.jar
+|   |-- bcprov-jdk18on-1.84.jar
 |   |-- README.md
 |
 |-- PA1_Report.pdf
@@ -494,7 +494,7 @@ supportedCiphersuites=AES/GCM/NoPadding,ChaCha20-Poly1305,AES/CTR/NoPadding
 Make sure the Bouncy Castle JAR is present:
 
 ```text
-Part3-PQ-SHP-RTSSP/bcprov-jdk15to18-1.78.jar
+Part3-PQ-SHP-RTSSP/bcprov-jdk18on-1.84.jar
 ```
 
 From the root of `Part3-PQ-SHP-RTSSP`:
