@@ -235,13 +235,13 @@ Open VLC first:
 udp://@:7777
 ```
 
-Then start the server from `Part1-RTSSP`:
+Then, in a cmd terminal, start the server from `Part1-RTSSP`:
 
 ```bash
 java -cp .;secureStreamServer secureStreamServer 9999
 ```
 
-Then start the proxy from `Part1-RTSSP`:
+Then, in a cmd terminal, start the proxy from `Part1-RTSSP`:
 
 ```bash
 java secureUDPproxy.secureUDPproxy
@@ -384,13 +384,13 @@ Open VLC first:
 udp://@:7777
 ```
 
-Then start the server from `Part2-SHP-RTSSP`:
+Then, in a cmd terminal, start the server from `Part2-SHP-RTSSP`:
 
 ```bash
 java -cp ".;common;secureStreamServer" secureStreamServer 9999
 ```
 
-Then start the proxy from `Part2-SHP-RTSSP`:
+Then, in a cmd terminal, start the proxy from `Part2-SHP-RTSSP`:
 
 ```bash
 java secureUDPproxy.secureUDPproxy
@@ -511,13 +511,13 @@ Open VLC first:
 udp://@:7777
 ```
 
-Then start the server:
+Then, in a cmd terminal, start the server:
 
 ```bash
 java -cp ".;bcprov-jdk18on-1.84.jar;secureStreamServer" secureStreamServer 9999
 ```
 
-Then start the proxy:
+Then, in a cmd terminal, start the proxy:
 
 ```bash
 java -cp ".;bcprov-jdk18on-1.84.jar;secureUDPproxy" secureUDPproxy.secureUDPproxy
