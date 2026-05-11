@@ -12,7 +12,7 @@ public class secureUDPproxy {
 
     private static final String PROXY_KEYSTORE = "secureUDPproxy/proxy-keystore.jks";
     private static final String PROXY_TRUSTSTORE = "secureUDPproxy/proxy-truststore.jks";
-    private static final String PASSWORD = "changeit";
+    private static final String PASSWORD = "password";
     private static final String PROXY_ALIAS = "proxy";
     private static final String SERVER_ALIAS = "server";
 

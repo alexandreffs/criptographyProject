@@ -327,11 +327,11 @@ Run these commands from the root of `Part2-SHP-RTSSP`.
 ### Server key pair and certificate
 
 ```bash
-keytool -genkeypair -alias server -keyalg EC -groupname secp256r1 -sigalg SHA256withECDSA -keystore secureStreamServer/server-keystore.jks -storepass changeit -keypass changeit -dname "CN=StreamingServer" -validity 365
+keytool -genkeypair -alias server -keyalg EC -groupname secp256r1 -sigalg SHA256withECDSA -keystore secureStreamServer/server-keystore.jks -storepass password -keypass password -dname "CN=StreamingServer" -validity 365
 ```
 
 ```bash
-keytool -exportcert -alias server -keystore secureStreamServer/server-keystore.jks -storepass changeit -file server.cer
+keytool -exportcert -alias server -keystore secureStreamServer/server-keystore.jks -storepass password -file server.cer
 ```
 
 ### Proxy key pair and certificate

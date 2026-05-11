@@ -8,14 +8,14 @@ public class secureStreamServer {
 
 	private static final String SERVER_KEYSTORE = "secureStreamServer/server-keystore.jks";
 	private static final String SERVER_TRUSTSTORE = "secureStreamServer/server-truststore.jks";
-	private static final String PASSWORD = "changeit";
+	private static final String PASSWORD = "password";
 	private static final String SERVER_ALIAS = "server";
 	private static final String PROXY_ALIAS = "proxy";
 
 	public static void main(String[] args) throws Exception {
 
 		if (args.length != 1) {
-			System.out.println("Use: java -cp secureStreamServer secureStreamServer 9999");
+			System.out.println("Use: java -cp .;secureStreamServer secureStreamServer 9999");
 			System.exit(-1);
 		}
 
