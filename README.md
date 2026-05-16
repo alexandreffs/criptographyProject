@@ -102,7 +102,7 @@ SpecialRealTimeMediaStreaming/
 |   |-- bcprov-jdk18on-1.84.jar
 |   |-- README.md
 |
-|-- PA1_Report.pdf
+|-- Part1&2_Report.pdf
 |-- Part3_PQ_SHP_Report.pdf
 |-- README.md
 ```
